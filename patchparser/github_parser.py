@@ -1,14 +1,19 @@
 """
 Helper functions to load and process commit data from GitHub
 """
-import re
-import requests
-from patchparser.utils import github_helper
+
 import os
+import re
+
+import requests
+
+from patchparser.patchparser.utils import github_helper
 
 
 class CommitParse:
-    def __init__(self, repo_owner: str, repo_name: bool, sha: str, commit_exist: bool) -> object:
+    def __init__(
+        self, repo_owner: str, repo_name: bool, sha: str, commit_exist: bool
+    ) -> object:
         """Initialize a class to hold the data for parsing the commit data
 
         Args:
@@ -108,7 +113,7 @@ def parse_commit_info(commit_info: list, parsed_commit: CommitParse) -> list:
             """Cleaning the headers, found @@REPLACE_ME@@ in some random code"""
             headers = []
             for head_row in headers_search:
-                if '-' in head_row and '+' in head_row:
+                if "-" in head_row and "+" in head_row:
                     headers.append(f"@@{head_row}@@")
             total_patches = len(headers)
 
@@ -119,55 +124,58 @@ def parse_commit_info(commit_info: list, parsed_commit: CommitParse) -> list:
                 else:
                     """Get line numbers changed for original code"""
                     try:
-                        original_lines = re.search(
-                            f"@@ -(.*?) \+", header).group(1)
+                        original_lines = re.search(f"@@ -(.*?) \+", header).group(1)
                         if "," in original_lines:
-                            original_line_start = int(
-                                original_lines.split(",")[0])
-                            original_line_length = int(
-                                original_lines.split(",")[1])
+                            original_line_start = int(original_lines.split(",")[0])
+                            original_line_length = int(original_lines.split(",")[1])
                         else:
                             """This occus for added txt files where the total length is 1: appears as @@ -A -B @@"""
                             original_line_start = int(original_lines)
                             original_line_length = int(original_lines)
-                        original_line_end = original_line_start + original_line_length - 1
+                        original_line_end = (
+                            original_line_start + original_line_length - 1
+                        )
                     except Exception as e:
                         print(f"Error on line 133 of github_parser: {str(e)}")
 
                     try:
                         """Get line numbers changed for modified code"""
-                        modified_lines = re.search(
-                            f" \+(.*) @@", header).group(1)
+                        modified_lines = re.search(f" \+(.*) @@", header).group(1)
                         if "," in modified_lines:
-                            modified_line_start = int(
-                                modified_lines.split(",")[0])
-                            modified_line_length = int(
-                                modified_lines.split(",")[1])
+                            modified_line_start = int(modified_lines.split(",")[0])
+                            modified_line_length = int(modified_lines.split(",")[1])
                         else:
                             """This occurs for added binary files the header will appear as @@ -A,X -B @@"""
                             modified_line_start = int(modified_lines)
                             modified_line_length = int(modified_lines)
 
-                        modified_line_end = modified_line_start + modified_line_length - 1
+                        modified_line_end = (
+                            modified_line_start + modified_line_length - 1
+                        )
                     except Exception as e:
                         print(f"Error on line 148 of github_parser: {str(e)}")
 
                 """Check if length of index is equal to last patch, if so read to end of raw_patch"""
                 if index + 1 == len(headers):
-                    raw_patch = raw_file_patch[raw_file_patch.find(
-                        headers[index])+len(headers[index]):]
+                    raw_patch = raw_file_patch[
+                        raw_file_patch.find(headers[index]) + len(headers[index]) :
+                    ]
                 else:
-                    raw_patch = raw_file_patch[raw_file_patch.find(
-                        headers[index])+len(headers[index]):raw_file_patch.find(headers[index+1])]
+                    raw_patch = raw_file_patch[
+                        raw_file_patch.find(headers[index])
+                        + len(headers[index]) : raw_file_patch.find(headers[index + 1])
+                    ]
 
                 """Call the function to help parse the patch to get data"""
                 patch_parse = parse_raw_patch(raw_patch)
 
                 """Create a temporary class to hold the parsed patch data"""
-                temp_parsed_commit = CommitParse(parsed_commit.repo_owner,
-                                                 parsed_commit.repo_name,
-                                                 parsed_commit.sha,
-                                                 parsed_commit.commit_exist)
+                temp_parsed_commit = CommitParse(
+                    parsed_commit.repo_owner,
+                    parsed_commit.repo_name,
+                    parsed_commit.sha,
+                    parsed_commit.commit_exist,
+                )
 
                 """Set various values"""
                 temp_parsed_commit.message = parsed_commit.message
@@ -198,27 +206,45 @@ def parse_commit_info(commit_info: list, parsed_commit: CommitParse) -> list:
                 temp_parsed_commit.total_file_deletions = total_file_deletions
                 temp_parsed_commit.total_file_changes = total_file_changes
                 temp_parsed_commit.commit_author_name = parsed_commit.commit_author_name
-                temp_parsed_commit.commit_author_login = parsed_commit.commit_author_login
-                temp_parsed_commit.commit_author_email = parsed_commit.commit_author_email
+                temp_parsed_commit.commit_author_login = (
+                    parsed_commit.commit_author_login
+                )
+                temp_parsed_commit.commit_author_email = (
+                    parsed_commit.commit_author_email
+                )
                 temp_parsed_commit.commit_author_date = parsed_commit.commit_author_date
-                temp_parsed_commit.commit_committer_name = parsed_commit.commit_committer_name
-                temp_parsed_commit.commit_committer_login = parsed_commit.commit_committer_login
-                temp_parsed_commit.commit_committer_email = parsed_commit.commit_committer_email
-                temp_parsed_commit.commit_committer_date = parsed_commit.commit_committer_date
+                temp_parsed_commit.commit_committer_name = (
+                    parsed_commit.commit_committer_name
+                )
+                temp_parsed_commit.commit_committer_login = (
+                    parsed_commit.commit_committer_login
+                )
+                temp_parsed_commit.commit_committer_email = (
+                    parsed_commit.commit_committer_email
+                )
+                temp_parsed_commit.commit_committer_date = (
+                    parsed_commit.commit_committer_date
+                )
                 temp_parsed_commit.commit_tree_sha = parsed_commit.commit_tree_sha
                 temp_parsed_commit.commit_tree_url = parsed_commit.commit_tree_url
-                temp_parsed_commit.commit_verification_verified = parsed_commit.commit_verification_verified
-                temp_parsed_commit.commit_verification_reason = parsed_commit.commit_verification_reason
+                temp_parsed_commit.commit_verification_verified = (
+                    parsed_commit.commit_verification_verified
+                )
+                temp_parsed_commit.commit_verification_reason = (
+                    parsed_commit.commit_verification_reason
+                )
                 temp_parsed_commit.parents = parsed_commit.parents
 
                 """Append the class as a dictionary to the data list"""
                 data.append(temp_parsed_commit.__dict__)
         else:
             """Sometimes patch is None (e.g., XLSX files)"""
-            temp_parsed_commit = CommitParse(parsed_commit.repo_owner,
-                                             parsed_commit.repo_name,
-                                             parsed_commit.sha,
-                                             parsed_commit.commit_exist)
+            temp_parsed_commit = CommitParse(
+                parsed_commit.repo_owner,
+                parsed_commit.repo_name,
+                parsed_commit.sha,
+                parsed_commit.commit_exist,
+            )
 
             temp_parsed_commit.message = parsed_commit.message
             temp_parsed_commit.file_name = file_name
@@ -234,14 +260,26 @@ def parse_commit_info(commit_info: list, parsed_commit: CommitParse) -> list:
             temp_parsed_commit.commit_author_login = parsed_commit.commit_author_login
             temp_parsed_commit.commit_author_email = parsed_commit.commit_author_email
             temp_parsed_commit.commit_author_date = parsed_commit.commit_author_date
-            temp_parsed_commit.commit_committer_name = parsed_commit.commit_committer_name
-            temp_parsed_commit.commit_committer_login = parsed_commit.commit_committer_login
-            temp_parsed_commit.commit_committer_email = parsed_commit.commit_committer_email
-            temp_parsed_commit.commit_committer_date = parsed_commit.commit_committer_date
+            temp_parsed_commit.commit_committer_name = (
+                parsed_commit.commit_committer_name
+            )
+            temp_parsed_commit.commit_committer_login = (
+                parsed_commit.commit_committer_login
+            )
+            temp_parsed_commit.commit_committer_email = (
+                parsed_commit.commit_committer_email
+            )
+            temp_parsed_commit.commit_committer_date = (
+                parsed_commit.commit_committer_date
+            )
             temp_parsed_commit.commit_tree_sha = parsed_commit.commit_tree_sha
             temp_parsed_commit.commit_tree_url = parsed_commit.commit_tree_url
-            temp_parsed_commit.commit_verification_verified = parsed_commit.commit_verification_verified
-            temp_parsed_commit.commit_verification_reason = parsed_commit.commit_verification_reason
+            temp_parsed_commit.commit_verification_verified = (
+                parsed_commit.commit_verification_verified
+            )
+            temp_parsed_commit.commit_verification_reason = (
+                parsed_commit.commit_verification_reason
+            )
             temp_parsed_commit.parents = parsed_commit.parents
 
             """Append the class as a dictionary to the data list"""
@@ -308,13 +346,15 @@ def parse_raw_patch(temp_raw_patch: str) -> dict:
         added_code=added_code_str,
         deletions=deletions,
         deleted_code=deleted_code_str,
-        changes=changes
+        changes=changes,
     )
 
     return patch_parse
 
 
-def commit(repo_owner: str, repo_name: str, sha: str, github_token=False, verbose=False) -> list:
+def commit(
+    repo_owner: str, repo_name: str, sha: str, github_token=False, verbose=False
+) -> list:
     """Pass the GitHub repo_owner, repo_name, and associated commit to parse.
 
     Args:
@@ -331,13 +371,12 @@ def commit(repo_owner: str, repo_name: str, sha: str, github_token=False, verbos
     """Commit info API URL"""
     url = f"https://api.github.com/repos/{repo_owner}/{repo_name}/commits/{sha}"
 
-    GITHUB_TOKEN = os.environ.get('GITHUB_TOKEN')
+    GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
 
-    headers = {'Authorization': 'Bearer %s' % GITHUB_TOKEN}
+    headers = {"Authorization": "Bearer %s" % GITHUB_TOKEN}
 
     """Smart GitHub rate manager"""
-    github_helper.smart_limit(token=GITHUB_TOKEN,
-                              verbose=verbose)
+    github_helper.smart_limit(token=GITHUB_TOKEN, verbose=verbose)
 
     """Get the response"""
     if verbose:
@@ -355,10 +394,12 @@ def commit(repo_owner: str, repo_name: str, sha: str, github_token=False, verbos
         commit_exist = True
 
         """Initialize a CommitParse to hold data"""
-        parsed_commit = CommitParse(repo_owner=repo_owner,
-                                    repo_name=repo_name,
-                                    sha=commit_info["sha"],
-                                    commit_exist=commit_exist)
+        parsed_commit = CommitParse(
+            repo_owner=repo_owner,
+            repo_name=repo_name,
+            sha=commit_info["sha"],
+            commit_exist=commit_exist,
+        )
 
         """Add commit message"""
         parsed_commit.message = commit_info["commit"]["message"]
@@ -370,13 +411,18 @@ def commit(repo_owner: str, repo_name: str, sha: str, github_token=False, verbos
         parsed_commit.commit_committer_name = commit_info["commit"]["committer"]["name"]
         if commit_info["committer"] != None and len(commit_info["committer"]) > 0:
             parsed_commit.commit_committer_login = commit_info["committer"]["login"]
-        parsed_commit.commit_committer_email = commit_info["commit"]["committer"]["email"]
+        parsed_commit.commit_committer_email = commit_info["commit"]["committer"][
+            "email"
+        ]
         parsed_commit.commit_committer_date = commit_info["commit"]["committer"]["date"]
         parsed_commit.commit_tree_sha = commit_info["commit"]["tree"]["sha"]
         parsed_commit.commit_tree_url = commit_info["commit"]["tree"]["url"]
-        parsed_commit.commit_verification_verified = commit_info[
-            "commit"]["verification"]["verified"]
-        parsed_commit.commit_verification_reason = commit_info["commit"]["verification"]["reason"]
+        parsed_commit.commit_verification_verified = commit_info["commit"][
+            "verification"
+        ]["verified"]
+        parsed_commit.commit_verification_reason = commit_info["commit"][
+            "verification"
+        ]["reason"]
         parsed_commit.parents = [z["sha"] for z in commit_info["parents"]]
 
         """Parse the files"""
@@ -391,10 +437,12 @@ def commit(repo_owner: str, repo_name: str, sha: str, github_token=False, verbos
         if verbose:
             print(f"\nIssue with request:\n{response.json()}")
         commit_exist = False
-        parsed_commit = CommitParse(repo_owner=repo_owner,
-                                    repo_name=repo_name,
-                                    sha=sha,
-                                    commit_exist=commit_exist)
+        parsed_commit = CommitParse(
+            repo_owner=repo_owner,
+            repo_name=repo_name,
+            sha=sha,
+            commit_exist=commit_exist,
+        )
 
         return [parsed_commit.__dict__]
 
@@ -414,13 +462,12 @@ def raw_commit(repo_owner: str, repo_name: str, sha: str, verbose=False) -> dict
     """Commit info API URL"""
     url = f"https://api.github.com/repos/{repo_owner}/{repo_name}/commits/{sha}"
 
-    GITHUB_TOKEN = os.environ.get('GITHUB_TOKEN')
+    GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
 
-    headers = {'Authorization': 'Bearer %s' % GITHUB_TOKEN}
+    headers = {"Authorization": "Bearer %s" % GITHUB_TOKEN}
 
     """Smart GitHub rate manager"""
-    github_helper.smart_limit(token=GITHUB_TOKEN,
-                              verbose=verbose)
+    github_helper.smart_limit(token=GITHUB_TOKEN, verbose=verbose)
 
     """Get the response"""
     response = requests.get(url, headers=headers)
